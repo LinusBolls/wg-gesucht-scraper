@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "lib": ["es2015"],
+    "noImplicitAny": true,
+    "alwaysStrict": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "removeComments": true,
+    "preserveConstEnums": true,
+    "sourceMap": true,
+    "strictNullChecks": true,
+    "esModuleInterop": true,
+    "strictFunctionTypes": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "strictPropertyInitialization": false,
+    "baseUrl": "/src"
+  }
+}
