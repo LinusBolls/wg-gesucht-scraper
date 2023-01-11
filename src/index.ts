@@ -18,7 +18,7 @@ const ListingType = {
   SINGLE_ROOM_FLAT: "https://www.wg-gesucht.de/1-zimmer-wohnungen-in-Berlin.8.1.1.0.html",
   WG: "https://www.wg-gesucht.de/wg-zimmer-in-Berlin.8.0.1.0.html",
   FLAT: "https://www.wg-gesucht.de/wohnungen-in-Berlin.8.2.1.0.html",
-  HOUSE: "https://www.wg-gesucht.de/haeuser-in-Berlin.8.3.1.0.html",
+  // HOUSE: "https://www.wg-gesucht.de/haeuser-in-Berlin.8.3.1.0.html",
 }
 
 loadEnv();
