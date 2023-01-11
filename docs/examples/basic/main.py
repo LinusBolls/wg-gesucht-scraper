@@ -16,7 +16,7 @@ get_res = requests.get(url=FLATFINDER_URL + "/listings", params=GET_PARAMS)
 data = get_res.json()
 
 if data["ok"] != 1:
-    print("GET /listings response not ok")
+    print(f"error: GET {FLATFINDER_URL}/listings response not ok")
 
     raise
 
@@ -40,20 +40,28 @@ hi {listing["publisher"]["name"]["recommended"]},
 {listing}
             """
 
-        POST_PARAMS = dict(
-            email=EMAIL,
-            password=PASSWORD,
-            listingId=listing["id"],
-            text=application,
-        )
-        POST_PARAMS = {
+        POST_NOTE_PARAMS = {
             "email": EMAIL,
             "password": PASSWORD,
             "listingId": listing["id"],
             "text": application,
         }
         post_res = requests.post(
-            url=FLATFINDER_URL + "/notes", json=POST_PARAMS)
+            url=FLATFINDER_URL + "/notes",
+            json=POST_NOTE_PARAMS,
+        )
+
+        # POST_APPLICATION_PARAMS = {
+        #     "email": EMAIL,
+        #     "password": PASSWORD,
+        #     "listingId": listing["id"],
+        #     "messages": [application],
+        #     "attachedListingId": "9815570",
+        # }
+        # post_res = requests.post(
+        #     url=FLATFINDER_URL + "/applications",
+        #     json=POST_APPLICATION_PARAMS,
+        # )
 
         listing_url = listing["url"]
 
