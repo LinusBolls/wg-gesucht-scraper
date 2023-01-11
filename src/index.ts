@@ -282,7 +282,7 @@ app.post('/v1/applications', handleSession(), async (req, res) => {
     sidepanelContactInfoContainerEl?.querySelector('.btn-md');
 
   const hasExistingConversation =
-    normalizeWhitespace(actionButtonEl!.innerText) === 'UNTERHALTUNG ANSEHEN';
+    normalizeWhitespace(actionButtonEl?.innerText ?? null) === 'UNTERHALTUNG ANSEHEN';
 
   if (hasExistingConversation && quitIfExistingConversation) {
     res.status(200).json({
