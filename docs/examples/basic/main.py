@@ -1,4 +1,5 @@
 import requests
+from time import sleep
 
 # email addresses not ending in @code.berlin or not
 # both registered and confirmed at https://wg-gesucht.de will get rejected
@@ -7,34 +8,37 @@ PASSWORD = "hB&WZp$4LWWPFh"
 
 FLATFINDER_URL = "https://flatfinder.bolls.dev/v1"
 
-GET_PARAMS = dict(
-    email=EMAIL,
-    password=PASSWORD,
-)
-get_res = requests.get(url=FLATFINDER_URL + "/listings", params=GET_PARAMS)
+while True:
 
-data = get_res.json()
+    GET_PARAMS = dict(
+        email=EMAIL,
+        password=PASSWORD,
+    )
+    get_res = requests.get(url=FLATFINDER_URL + "/listings", params=GET_PARAMS)
 
-if data["ok"] != 1:
-    print(f"error: GET {FLATFINDER_URL}/listings response not ok")
+    data = get_res.json()
 
-    raise
+    if data["ok"] != 1:
+        print(f"error: GET {FLATFINDER_URL}/listings response not ok")
 
-listings = data["data"]
+        raise
 
-for listing in listings:
+    listings = data["data"]
 
-    if not listing["userHasApplied"]:  # listing["location"]["city"] is "Berlin"
+    for listing in listings:
 
-        codeword = listing["codeWord"]
+        # listing["location"]["city"] is "Berlin"
+        if not listing["userHasApplied"] and listing["endDate"] is None:
 
-        is_casual = listing["publisher"]["name"]["last"] is None
+            codeword = listing["codeWord"]
 
-        ansprache = "du" if is_casual else "Sie"
+            is_casual = listing["publisher"]["name"]["last"] is None
 
-        if "german" in listing["languages"]:
+            ansprache = "du" if is_casual else "Sie"
 
-            application = f"""
+            if "german" in listing["languages"]:
+
+                application = f"""
 {"Moin" if is_casual else "Guten Tag"} {listing["publisher"]["name"]["recommended"]},
 
 {f"Codewort: {codeword} ;)" if codeword is not None else ""}
@@ -52,48 +56,62 @@ Falls {"du Interesse hast" if is_casual else "Sie Interesse haben"}, würden wir
 
 Mit freundlichen Grüßen
 Linus Bolls
-{listing}
-            """
+                """
 
-        else:
+            else:
 
-            application = f"""
+                application = f"""
 Hi {listing["publisher"]["name"]["recommended"]},
-{listing}
-            """
 
-        # POST_NOTE_PARAMS = {
-        #     "email": EMAIL,
-        #     "password": PASSWORD,
-        #     "listingId": listing["id"],
-        #     "text": application,
-        # }
-        # post_res = requests.post(
-        #     url=FLATFINDER_URL + "/notes",
-        #     json=POST_NOTE_PARAMS,
-        # )
+{f"Codeword: {codeword} ;)" if codeword is not None else ""}
+A friend of mine and myself are looking for a long-term accommodation.
+The flat would be perfect for us, and it's close to our uni!
 
-        POST_APPLICATION_PARAMS = {
-            "email": EMAIL,
-            "password": PASSWORD,
-            "listingId": listing["id"],
-            "messages": [application],
-            "attachedListingId": "9815570",
-            "quitIfExistingConversation": True
-        }
-        post_res = requests.post(
-            url=FLATFINDER_URL + "/applications",
-            json=POST_APPLICATION_PARAMS,
-        )
+We both moved to Berlin to study, and spend most of our time at the uni.
+We just need a cozy place to sleep and relax and are very uncomplicated tenants.
 
-        listing_url = listing["url"]
+On request we will send you further documents, like the SCHUFA of our parents and our prove of study.
 
-        if post_res.status_code == 201:
-            print(f"applied to {listing_url}")
+Looking forward to hearing from you :)
 
-        elif post_res.status_code == 200:
-            print(
-                f"did not apply to {listing_url} because there is an existing conversation")
+Regards,
+Linus Bolls
+                """
 
-        else:
-            print(f"error applying to {listing_url}", post_res)
+            # POST_NOTE_PARAMS = {
+            #     "email": EMAIL,
+            #     "password": PASSWORD,
+            #     "listingId": listing["id"],
+            #     "text": application,
+            # }
+            # post_res = requests.post(
+            #     url=FLATFINDER_URL + "/notes",
+            #     json=POST_NOTE_PARAMS,
+            # )
+
+            POST_APPLICATION_PARAMS = {
+                "email": EMAIL,
+                "password": PASSWORD,
+                "listingId": listing["id"],
+                "messages": [application],
+                "attachedListingId": "9815570",
+                "quitIfExistingConversation": True
+            }
+            post_res = requests.post(
+                url=FLATFINDER_URL + "/applications",
+                json=POST_APPLICATION_PARAMS,
+            )
+
+            listing_url = listing["url"]
+
+            if post_res.status_code == 201:
+                print(f"applied to {listing_url}")
+
+            elif post_res.status_code == 200:
+                print(
+                    f"did not apply to {listing_url} because there is an existing conversation")
+
+            else:
+                print(f"error applying to {listing_url}", post_res)
+
+            sleep(30)

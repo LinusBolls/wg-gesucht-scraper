@@ -14,6 +14,13 @@ import { Listing, UserDependendListingData } from './types/Listing';
 import getCsrfToken from './utils/getCsrfToken';
 import { normalizeWhitespace } from './utils/stringParsing';
 
+const ListingType = {
+  SINGLE_ROOM_FLAT: "https://www.wg-gesucht.de/1-zimmer-wohnungen-in-Berlin.8.1.1.0.html",
+  WG: "https://www.wg-gesucht.de/wg-zimmer-in-Berlin.8.0.1.0.html",
+  FLAT: "https://www.wg-gesucht.de/wohnungen-in-Berlin.8.2.1.0.html",
+  HOUSE: "https://www.wg-gesucht.de/haeuser-in-Berlin.8.3.1.0.html",
+}
+
 loadEnv();
 
 const app = express();
@@ -24,6 +31,25 @@ app.use(cors());
 
 let sessions: Record<string, any> = {};
 let listings: Listing[] = [];
+
+function createRandomSessionGenerator() {
+
+  let currentSessionIdx = 0
+
+  return () => {
+
+    if (Object.values(sessions).length < 1) return null
+
+    if (currentSessionIdx >= Object.values(sessions).length) currentSessionIdx = 0
+
+    const session = Object.values(sessions)[currentSessionIdx]
+
+    currentSessionIdx++
+
+    return session
+  }
+}
+const getRandomSession = createRandomSessionGenerator()
 
 const SessionSchema = z.object({
   email: z.string().email(), // .endsWith("@code.berlin"),
@@ -329,116 +355,123 @@ app.listen(process.env.PORT, () => {
 });
 
 async function fetchListings() {
-  if (Object.keys(sessions).length < 1) return;
 
-  const { cookie, userId } = sessions['linus.bolls@gmail.com'];
+  for (const [listingType, url] of Object.entries(ListingType)) {
 
-  const wggClient = new WGGClient(cookie, userId);
+    const session = getRandomSession()
 
-  const url =
-    'https://www.wg-gesucht.de/1-zimmer-wohnungen-in-Berlin.8.1.1.0.html';
+    if (session == null) return
 
-  console.info('fetching listings');
+    const wggClient = new WGGClient(session.cookie, session.userId);
 
-  const [getListingsErr, listingsPageHtml] = await wggClient.getListings(url);
+    console.info('fetching listings for', url, "using", session.email);
 
-  if (getListingsErr != null) throw new Error('sache');
+    const [getListingsErr, listingsPageHtml] = await wggClient.getListings(url);
 
-  const { listings: listingOverviews, partneredListings } =
-    parseListingsPage(listingsPageHtml);
+    if (getListingsErr != null) throw new Error('sache');
 
-  listings = await Promise.all(
-    // wg-gesucht usually inserts at least one company-sponsored listing, we don't want those
-    listingOverviews
-      .filter((i) => !i.isCompanyListing)
-      .map(async (listingOverviewData) => {
-        const cachedListing = listings.filter(
-          (i) => i.id === listingOverviewData.id
-        )[0];
+    const { listings: listingOverviews, partneredListings } =
+      parseListingsPage(listingsPageHtml);
 
-        if (cachedListing) return cachedListing;
+    const newListings = await Promise.all<Listing>(
+      // wg-gesucht usually inserts at least one company-sponsored listing, we don't want those
+      listingOverviews
+        .filter((i) => !i.isCompanyListing)
+        // we don't want listings we already know either, for bandwidth reasons
+        .filter(i => {
+          const cachedListing = listings.filter(
+            (j) => j.id === i.id
+          )[0];
+          const isKnown = cachedListing != null
 
-        console.info('fetching listing', listingOverviewData.url);
+          return !isKnown
+        })
+        .map(async (listingOverviewData) => {
 
-        const [getListingErr, listingPageHtml] = await wggClient.getListing(
-          listingOverviewData.url
-        );
+          console.info('fetching listing', listingOverviewData.url, "using", session.email);
 
-        if (getListingErr != null) throw new Error('sache');
+          const [getListingErr, listingPageHtml] = await wggClient.getListing(
+            listingOverviewData.url
+          );
 
-        const listingPageData = parseListingPage(listingPageHtml);
+          if (getListingErr != null) throw new Error('sache');
 
-        const now = dayjs().toDate();
+          const listingPageData = parseListingPage(listingPageHtml);
 
-        const firstScrapedDate = now;
-        const lastScrapedDate = now;
+          const now = dayjs().toDate();
 
-        return {
-          ...listingOverviewData,
-          ...listingPageData,
-          firstScrapedDate,
-          lastScrapedDate,
-        };
-      })
-  );
-}
+          const firstScrapedDate = now;
+          const lastScrapedDate = now;
 
-async function callWebhook(url: string, event: 'NEW_LISTING', data: Listing[]) {
-  const body = {
-    event,
-    data,
-  };
-  const res = await axios.post<any>(url, body);
+          return {
+            ...listingOverviewData,
+            ...listingPageData,
+            firstScrapedDate,
+            lastScrapedDate,
+            type: listingType,
+          };
+        })
+    );
+    listings = [...listings, ...newListings]
+  }
 
-  const QuerySchema = z.object({
-    email: z.string().email(),
-    password: z.string().min(1),
-    data: z.record(
-      z.string(),
-      z.object({
-        application: z.string().optional(),
-        note: z.string().optional(),
-      })
-    ),
-  });
-  // @ts-ignore
-  const { success, clientData } = QuerySchema.safeParse(res.data) as any;
+  async function callWebhook(url: string, event: 'NEW_LISTING', data: Listing[]) {
+    const body = {
+      event,
+      data,
+    };
+    const res = await axios.post<any>(url, body);
 
-  if (!success) return;
+    const QuerySchema = z.object({
+      email: z.string().email(),
+      password: z.string().min(1),
+      data: z.record(
+        z.string(),
+        z.object({
+          application: z.string().optional(),
+          note: z.string().optional(),
+        })
+      ),
+    });
+    // @ts-ignore
+    const { success, clientData } = QuerySchema.safeParse(res.data) as any;
 
-  const { email, password, data: actionData } = clientData;
+    if (!success) return;
 
-  const session = sessions[email];
+    const { email, password, data: actionData } = clientData;
 
-  const client = new WGGClient(session.id, password);
+    const session = sessions[email];
 
-  for (const [listingId, actions] of Object.entries(actionData)) {
-    for (const [action, payload] of Object.entries(actions!)) {
-      if (action === 'application') {
-        const listing = listings.filter((i) => i.id === listingId)[0]!;
+    const client = new WGGClient(session.id, password);
 
-        const [getListingPageErr, listingPage] = await client.getListing(
-          listing.url
-        );
+    for (const [listingId, actions] of Object.entries(actionData)) {
+      for (const [action, payload] of Object.entries(actions!)) {
+        if (action === 'application') {
+          const listing = listings.filter((i) => i.id === listingId)[0]!;
 
-        if (getListingPageErr != null) throw getListingPageErr;
+          const [getListingPageErr, listingPage] = await client.getListing(
+            listing.url
+          );
 
-        const csrfToken = getCsrfToken(parseHtml(listingPage))!;
+          if (getListingPageErr != null) throw getListingPageErr;
 
-        await client.postListingApplication(listingId, csrfToken, payload);
-      }
-      if (action === 'note') {
-        const listing = listings.filter((i) => i.id === listingId)[0]!;
+          const csrfToken = getCsrfToken(parseHtml(listingPage))!;
 
-        const [getListingPageErr, listingPage] = await client.getListing(
-          listing.url
-        );
+          await client.postListingApplication(listingId, csrfToken, payload);
+        }
+        if (action === 'note') {
+          const listing = listings.filter((i) => i.id === listingId)[0]!;
 
-        if (getListingPageErr != null) throw getListingPageErr;
+          const [getListingPageErr, listingPage] = await client.getListing(
+            listing.url
+          );
 
-        const csrfToken = getCsrfToken(parseHtml(listingPage))!;
+          if (getListingPageErr != null) throw getListingPageErr;
 
-        await client.postListingNote(listingId, csrfToken, payload);
+          const csrfToken = getCsrfToken(parseHtml(listingPage))!;
+
+          await client.postListingNote(listingId, csrfToken, payload);
+        }
       }
     }
   }
