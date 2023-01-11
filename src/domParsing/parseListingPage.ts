@@ -154,6 +154,12 @@ export default function parseListingPage(
   const sidepanelContactInfoContainerEl =
     sidepanelcontactInfoHeadingEl?.parentNode.parentNode;
 
+  const actionButtonEl =
+    sidepanelContactInfoContainerEl?.querySelector('.btn-md');
+
+  const hasExistingConversation =
+    normalizeWhitespace(actionButtonEl!.innerText) === 'UNTERHALTUNG ANSEHEN';
+
   const onlineSinceEl =
     sidepanelContactInfoContainerEl?.querySelector('div.mb5');
 

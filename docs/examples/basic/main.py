@@ -26,17 +26,22 @@ for listing in listings:
 
     if not listing["userHasApplied"]:  # listing["location"]["city"] is "Berlin"
 
+        codeword = listing["codeword"]
+
         if "german" in listing["languages"]:
 
             application = f"""
-moin {listing["publisher"]["name"]["recommended"]},
+Moin {listing["publisher"]["name"]["recommended"]},
+
+{f"Codewort: {codeword} ;)\n" if codeword is not None else ""}
+Ein Freund und ich sind interessiert an dem Angebot,
 {listing}
             """
 
         else:
 
             application = f"""
-hi {listing["publisher"]["name"]["recommended"]},
+Hi {listing["publisher"]["name"]["recommended"]},
 {listing}
             """
 
@@ -65,4 +70,9 @@ hi {listing["publisher"]["name"]["recommended"]},
 
         listing_url = listing["url"]
 
-        print(f"applied to {listing_url}")
+        if post_res.status is 201:
+            print(f"applied to {listing_url}")
+
+        if post_res.status is 200:
+            print(
+                f"did not apply to {listing_url} because there is an existing conversation")

@@ -12,6 +12,7 @@ import parseListingsPage from './domParsing/parseListingsPage';
 import parseListingPage from './domParsing/parseListingPage';
 import { Listing, UserDependendListingData } from './types/Listing';
 import getCsrfToken from './utils/getCsrfToken';
+import { normalizeWhitespace } from './utils/stringParsing';
 
 loadEnv();
 
@@ -185,7 +186,7 @@ app.post('/v1/notes', handleSession(), async (req, res) => {
   }
   registerAction((req as any).meta.email, 'MADE_NOTE', listingId);
 
-  res.json({
+  res.status(201).json({
     ok: 1,
     data: postNoteRes,
     meta: (req as any).meta,
@@ -237,6 +238,7 @@ app.post('/v1/applications', handleSession(), async (req, res) => {
   const QuerySchema = z.object({
     listingId: z.string(),
     messages: z.array(z.string()),
+    quitIfExistingConversation: z.boolean().optional(),
     attachedListingId: z.string().optional(),
   });
   const { success, data } = QuerySchema.safeParse(req.query) as any;
@@ -246,7 +248,12 @@ app.post('/v1/applications', handleSession(), async (req, res) => {
 
     return;
   }
-  const { listingId, messages, attachedListingId = null } = data;
+  const {
+    listingId,
+    messages,
+    attachedListingId = null,
+    quitIfExistingConversation = true,
+  } = data;
 
   const client = new WGGClient(
     (req as any).meta.session.cookie,
@@ -254,11 +261,38 @@ app.post('/v1/applications', handleSession(), async (req, res) => {
   );
   const listing = listings.filter((i) => i.id === listingId)[0]!;
 
-  const [getListingPageErr, listingPage] = await client.getListing(listing.url);
+  const [getListingPageErr, listingPageText] = await client.getListing(
+    listing.url
+  );
 
   if (getListingPageErr != null) throw getListingPageErr;
 
-  const csrfToken = getCsrfToken(parseHtml(listingPage))!;
+  const listingPage = parseHtml(listingPageText);
+
+  const csrfToken = getCsrfToken(listingPage)!;
+
+  const sidepanelcontactInfoHeadingEl = listingPage
+    .querySelectorAll('h4.panel-title')
+    .filter((i) => i.innerText === 'KONTAKTINFORMATIONEN\nEINBLENDEN')[0];
+
+  const sidepanelContactInfoContainerEl =
+    sidepanelcontactInfoHeadingEl?.parentNode.parentNode;
+
+  const actionButtonEl =
+    sidepanelContactInfoContainerEl?.querySelector('.btn-md');
+
+  const hasExistingConversation =
+    normalizeWhitespace(actionButtonEl!.innerText) === 'UNTERHALTUNG ANSEHEN';
+
+  if (hasExistingConversation && quitIfExistingConversation) {
+    res.status(200).json({
+      ok: 0,
+      data: null,
+      message: `did not send messages because you already have a conversation with "${listingId}" and did not specify "quitIfExistingConversation": false in your request body.`,
+      meta: (req as any).meta,
+    });
+    return;
+  }
 
   const [postApplicationErr, postApplicationRes] =
     await client.postListingApplication(
@@ -279,7 +313,7 @@ app.post('/v1/applications', handleSession(), async (req, res) => {
 
   registerAction((req as any).meta.email, 'APPLIED', listingId);
 
-  res.json({
+  res.status(201).json({
     ok: 1,
     data: postApplicationRes,
     meta: (req as any).meta,
