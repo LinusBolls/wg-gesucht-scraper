@@ -5,6 +5,7 @@ import { z } from 'zod';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { parse as parseHtml } from 'node-html-parser';
+import { config as loadEnv } from "dotenv"
 
 import WGGClient from './WGGClient';
 import parseListingsPage from './domParsing/parseListingsPage';
@@ -12,7 +13,7 @@ import parseListingPage from './domParsing/parseListingPage';
 import { Listing } from './types/Listing';
 import getCsrfToken from './utils/getCsrfToken';
 
-const PORT = 3000;
+loadEnv()
 
 const app = express();
 
@@ -272,8 +273,8 @@ fetchListings();
 
 setInterval(fetchListings, 1000 * 30);
 
-app.listen(PORT, () => {
-  console.info(`app listening at http://127.0.0.1:${PORT}`);
+app.listen(process.env.PORT, () => {
+  console.info(`app listening at http://127.0.0.1:${process.env.PORT}`);
 });
 
 async function fetchListings() {
