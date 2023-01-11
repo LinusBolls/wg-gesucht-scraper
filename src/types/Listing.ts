@@ -52,4 +52,10 @@ export interface ListingLocation {
   // city: string
   // country: string
 }
+
+export interface UserDependendListingData {
+  userHasSeen: boolean;
+  userHasMadeNote: boolean;
+  userHasApplied: boolean;
+}
 export type Listing = ListingPreviewData & ListingPageData;

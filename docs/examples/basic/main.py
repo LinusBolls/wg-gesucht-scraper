@@ -5,7 +5,7 @@ import requests
 EMAIL = "linus.bolls@gmail.com"
 PASSWORD = "hB&WZp$4LWWPFh"
 
-FLATFINDER_URL = "http://localhost:3000/v1"
+FLATFINDER_URL = "https://flatfinder.bolls.dev/v1"
 
 GET_PARAMS = dict(
     email=EMAIL,

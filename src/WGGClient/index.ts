@@ -66,28 +66,46 @@ export default class WGGClient {
     offerId: string,
     csrfToken: string,
     text: string
-  ): Promise<[Error, null] | [null, string]> {
+  ): Promise<[Error, null] | [null, any]> {
     try {
-      // const postUrl = 'https://www.wg-gesucht.de/api/ad-notes';
+      const postUrl = 'https://www.wg-gesucht.de/ajax/conversations.php?action=conversations';
 
-      // const body = {
-      //   user_id: this._userId,
-      //   offer_id: offerId,
-      //   text,
-      //   csrf_token: csrfToken,
-      // };
+      const body = {
+        user_id: this._userId,
+        ad_id: offerId,
+        text,
+        csrf_token: csrfToken,
+        ad_type: "0",
+        messages: [
+          {
+            content: text,
+            message_type: "text"
+          },
+          // {
+          //   content: "9815570",
+          //   message_type: "attached_request"
+          // },
+        ],
+      };
 
-      // axios.defaults.withCredentials = true;
+      axios.defaults.withCredentials = true;
 
-      // const res = await axios.post<any>(postUrl, body, {
-      //   headers: this._headers,
-      //   withCredentials: true,
-      // });
-      // const { detail } = res.data;
+      interface Response {
+        conversation_id: string
+        messages: any[]
+        _links: {
+          self: {
+            href: string
+          }
+        }
+      }
 
-      // return [null, detail];
+      const res = await axios.post<Response>(postUrl, body, {
+        headers: this._headers,
+        withCredentials: true,
+      });
 
-      return [null, 'moin'];
+      return [null, res.data];
     } catch (err) {
       return [err as Error, null];
     }

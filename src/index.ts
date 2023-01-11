@@ -10,7 +10,7 @@ import { config as loadEnv } from "dotenv"
 import WGGClient from './WGGClient';
 import parseListingsPage from './domParsing/parseListingsPage';
 import parseListingPage from './domParsing/parseListingPage';
-import { Listing } from './types/Listing';
+import { Listing, UserDependendListingData } from './types/Listing';
 import getCsrfToken from './utils/getCsrfToken';
 
 loadEnv()
@@ -101,31 +101,42 @@ function registerAction(
 }
 
 app.get('/v1/listings', handleSession(), async (req, res) => {
-  for (const listing of Object.values(listings)) {
-    (listing as any).userHasSeen = hasActionHappened(
+
+  const enrichedListings = listings.map<Listing & UserDependendListingData>(listing => {
+
+    const userHasSeen = hasActionHappened(
       (req as any).meta.email,
       'SAW',
       listing.id
     );
-
-    (listing as any).userHasApplied = hasActionHappened(
-      (req as any).meta.email,
-      'APPLIED',
-      listing.id
-    );
-
-    (listing as any).userHasMadeNode = hasActionHappened(
+    const userHasMadeNote = hasActionHappened(
       (req as any).meta.email,
       'MADE_NOTE',
       listing.id
     );
-
+    const userHasApplied = hasActionHappened(
+      (req as any).meta.email,
+      'APPLIED',
+      listing.id
+    );
     registerAction((req as any).meta.email, 'SAW', listing.id);
-  }
 
+    const sache: UserDependendListingData = {
+      userHasSeen,
+      userHasMadeNote,
+      userHasApplied,
+    }
+
+    const enrichedListing = {
+      ...listing,
+      ...sache,
+    }
+
+    return enrichedListing
+  })
   res.json({
     ok: 1,
-    data: listings,
+    data: enrichedListings,
     meta: (req as any).meta,
   });
 });
