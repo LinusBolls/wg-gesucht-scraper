@@ -26,15 +26,32 @@ for listing in listings:
 
     if not listing["userHasApplied"]:  # listing["location"]["city"] is "Berlin"
 
-        codeword = listing["codeword"]
+        codeword = listing["codeWord"]
+
+        is_casual = listing["publisher"]["name"]["last"] is None
+
+        ansprache = "du" if is_casual else "Sie"
 
         if "german" in listing["languages"]:
 
             application = f"""
-Moin {listing["publisher"]["name"]["recommended"]},
+{"Moin" if is_casual else "Guten Tag"} {listing["publisher"]["name"]["recommended"]},
 
-{f"Codewort: {codeword} ;)\n" if codeword is not None else ""}
-Ein Freund und ich sind interessiert an dem Angebot,
+{f"Codewort: {codeword} ;)" if codeword is not None else ""}
+Ein Freund und ich suchen nach einer langfristigen Unterkunft, da unsere vorübergehenden Mietverträge demnächst auslaufen. 
+Die Wohnung würde uns sehr gelegen kommen, da sie sich in der Nähe unserer Uni befindet.
+
+Wir sind beide für das Studium nach Berlin gezogen.
+Da wir die meiste Zeit an der Uni sind, brauchen wir nur ein entspanntes Plätzchen zum Schlafen und sind ansonsten sehr unkompliziert{" :)" if is_casual else "."}
+
+Auf Anfrage sind wir jederzeit bereit, Dokumente wie unsere Studentenverträge oder die SCHUFA-Einträge unserer Eltern zur Verfügung zu stellen. 
+Unsere Eltern können zudem für uns bürgen. 
+Mehr Informationen über uns {"findest du" if is_casual else "finden Sie"} in unserem Gesuch.
+
+Falls {"du Interesse hast" if is_casual else "Sie Interesse haben"}, würden wir uns sehr über eine Antwort freuen :)
+
+Mit freundlichen Grüßen
+Linus Bolls
 {listing}
             """
 
@@ -45,34 +62,38 @@ Hi {listing["publisher"]["name"]["recommended"]},
 {listing}
             """
 
-        POST_NOTE_PARAMS = {
-            "email": EMAIL,
-            "password": PASSWORD,
-            "listingId": listing["id"],
-            "text": application,
-        }
-        post_res = requests.post(
-            url=FLATFINDER_URL + "/notes",
-            json=POST_NOTE_PARAMS,
-        )
-
-        # POST_APPLICATION_PARAMS = {
+        # POST_NOTE_PARAMS = {
         #     "email": EMAIL,
         #     "password": PASSWORD,
         #     "listingId": listing["id"],
-        #     "messages": [application],
-        #     "attachedListingId": "9815570",
+        #     "text": application,
         # }
         # post_res = requests.post(
-        #     url=FLATFINDER_URL + "/applications",
-        #     json=POST_APPLICATION_PARAMS,
+        #     url=FLATFINDER_URL + "/notes",
+        #     json=POST_NOTE_PARAMS,
         # )
+
+        POST_APPLICATION_PARAMS = {
+            "email": EMAIL,
+            "password": PASSWORD,
+            "listingId": listing["id"],
+            "messages": [application],
+            "attachedListingId": "9815570",
+            "quitIfExistingConversation": True
+        }
+        post_res = requests.post(
+            url=FLATFINDER_URL + "/applications",
+            json=POST_APPLICATION_PARAMS,
+        )
 
         listing_url = listing["url"]
 
-        if post_res.status is 201:
+        if post_res.status_code == 201:
             print(f"applied to {listing_url}")
 
-        if post_res.status is 200:
+        elif post_res.status_code == 200:
             print(
                 f"did not apply to {listing_url} because there is an existing conversation")
+
+        else:
+            print(f"error applying to {listing_url}", post_res)

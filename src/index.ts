@@ -241,7 +241,7 @@ app.post('/v1/applications', handleSession(), async (req, res) => {
     quitIfExistingConversation: z.boolean().optional(),
     attachedListingId: z.string().optional(),
   });
-  const { success, data } = QuerySchema.safeParse(req.query) as any;
+  const { success, data } = QuerySchema.safeParse(req.body) as any;
 
   if (!success) {
     res.status(400).json({ ok: 0 });
