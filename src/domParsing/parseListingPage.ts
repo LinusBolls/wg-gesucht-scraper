@@ -53,9 +53,9 @@ export default function parseListingPage(
     tagContainerEl == null
       ? []
       : tagContainerEl
-        .querySelectorAll('.row div')
-        .map((i) => normalizeWhitespace(i.innerText)!)
-        .filter((i) => i.length > 0);
+          .querySelectorAll('.row div')
+          .map((i) => normalizeWhitespace(i.innerText)!)
+          .filter((i) => i.length > 0);
 
   const totalRentEur = parseEuros(totalRentEl?.innerText!) || 0;
 
@@ -137,7 +137,12 @@ export default function parseListingPage(
 
   const publisherName = parseName(rawPublisherName);
 
-  console.log("parsed name", publisherName.recommended, "from", rawPublisherName)
+  console.log(
+    'parsed name',
+    publisherName.recommended,
+    'from',
+    rawPublisherName
+  );
 
   const publisher = {
     name: publisherName,

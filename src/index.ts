@@ -5,7 +5,7 @@ import { z } from 'zod';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { parse as parseHtml } from 'node-html-parser';
-import { config as loadEnv } from "dotenv"
+import { config as loadEnv } from 'dotenv';
 
 import WGGClient from './WGGClient';
 import parseListingsPage from './domParsing/parseListingsPage';
@@ -13,7 +13,7 @@ import parseListingPage from './domParsing/parseListingPage';
 import { Listing, UserDependendListingData } from './types/Listing';
 import getCsrfToken from './utils/getCsrfToken';
 
-loadEnv()
+loadEnv();
 
 const app = express();
 
@@ -101,39 +101,39 @@ function registerAction(
 }
 
 app.get('/v1/listings', handleSession(), async (req, res) => {
+  const enrichedListings = listings.map<Listing & UserDependendListingData>(
+    (listing) => {
+      const userHasSeen = hasActionHappened(
+        (req as any).meta.email,
+        'SAW',
+        listing.id
+      );
+      const userHasMadeNote = hasActionHappened(
+        (req as any).meta.email,
+        'MADE_NOTE',
+        listing.id
+      );
+      const userHasApplied = hasActionHappened(
+        (req as any).meta.email,
+        'APPLIED',
+        listing.id
+      );
+      registerAction((req as any).meta.email, 'SAW', listing.id);
 
-  const enrichedListings = listings.map<Listing & UserDependendListingData>(listing => {
+      const sache: UserDependendListingData = {
+        userHasSeen,
+        userHasMadeNote,
+        userHasApplied,
+      };
 
-    const userHasSeen = hasActionHappened(
-      (req as any).meta.email,
-      'SAW',
-      listing.id
-    );
-    const userHasMadeNote = hasActionHappened(
-      (req as any).meta.email,
-      'MADE_NOTE',
-      listing.id
-    );
-    const userHasApplied = hasActionHappened(
-      (req as any).meta.email,
-      'APPLIED',
-      listing.id
-    );
-    registerAction((req as any).meta.email, 'SAW', listing.id);
+      const enrichedListing = {
+        ...listing,
+        ...sache,
+      };
 
-    const sache: UserDependendListingData = {
-      userHasSeen,
-      userHasMadeNote,
-      userHasApplied,
+      return enrichedListing;
     }
-
-    const enrichedListing = {
-      ...listing,
-      ...sache,
-    }
-
-    return enrichedListing
-  })
+  );
   res.json({
     ok: 1,
     data: enrichedListings,
@@ -236,7 +236,8 @@ app.delete('/v1/webhooks', handleSession(), async (req, res) => {
 app.post('/v1/applications', handleSession(), async (req, res) => {
   const QuerySchema = z.object({
     listingId: z.string(),
-    text: z.string(),
+    messages: z.array(z.string()),
+    attachedListingId: z.string().optional(),
   });
   const { success, data } = QuerySchema.safeParse(req.query) as any;
 
@@ -245,7 +246,7 @@ app.post('/v1/applications', handleSession(), async (req, res) => {
 
     return;
   }
-  const { listingId, text } = data;
+  const { listingId, messages, attachedListingId = null } = data;
 
   const client = new WGGClient(
     (req as any).meta.session.cookie,
@@ -260,7 +261,12 @@ app.post('/v1/applications', handleSession(), async (req, res) => {
   const csrfToken = getCsrfToken(parseHtml(listingPage))!;
 
   const [postApplicationErr, postApplicationRes] =
-    await client.postListingApplication(listingId, csrfToken, text);
+    await client.postListingApplication(
+      listingId,
+      csrfToken,
+      messages,
+      attachedListingId
+    );
 
   if (postApplicationErr != null) {
     res.status(400).json({

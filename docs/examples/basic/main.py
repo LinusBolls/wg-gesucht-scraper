@@ -30,14 +30,14 @@ for listing in listings:
 
             application = f"""
 moin {listing["publisher"]["name"]["recommended"]},
-
+{listing}
             """
 
         else:
 
             application = f"""
 hi {listing["publisher"]["name"]["recommended"]},
-
+{listing}
             """
 
         POST_PARAMS = dict(

@@ -65,39 +65,43 @@ export default class WGGClient {
   async postListingApplication(
     offerId: string,
     csrfToken: string,
-    text: string
+    texts: string[],
+    attachedListingId?: string | null
   ): Promise<[Error, null] | [null, any]> {
     try {
-      const postUrl = 'https://www.wg-gesucht.de/ajax/conversations.php?action=conversations';
+      const postUrl =
+        'https://www.wg-gesucht.de/ajax/conversations.php?action=conversations';
+
+      let messages = texts.map((text) => ({
+        content: text,
+        message_type: 'text',
+      }));
+
+      if (attachedListingId != null) {
+        messages.push({
+          content: attachedListingId,
+          message_type: 'attached_request',
+        });
+      }
 
       const body = {
         user_id: this._userId,
         ad_id: offerId,
-        text,
         csrf_token: csrfToken,
-        ad_type: "0",
-        messages: [
-          {
-            content: text,
-            message_type: "text"
-          },
-          // {
-          //   content: "9815570",
-          //   message_type: "attached_request"
-          // },
-        ],
+        ad_type: '0',
+        messages,
       };
 
       axios.defaults.withCredentials = true;
 
       interface Response {
-        conversation_id: string
-        messages: any[]
+        conversation_id: string;
+        messages: any[];
         _links: {
           self: {
-            href: string
-          }
-        }
+            href: string;
+          };
+        };
       }
 
       const res = await axios.post<Response>(postUrl, body, {
