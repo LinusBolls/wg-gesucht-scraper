@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { parse as parseCookie } from 'cookie';
 import dayjs from 'dayjs';
-import SocksProxyAgent from 'socks-proxy-agent';
+import { SocksProxyAgent } from 'socks-proxy-agent';
 
 // the tor proxy runs on port 9050 by default
 // @ts-ignore
