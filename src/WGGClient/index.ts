@@ -8,7 +8,7 @@ import { SocksProxyAgent } from 'socks-proxy-agent';
 const httpsAgent = new SocksProxyAgent("socks5://$127.0.0.1:9050");
 
 const httpClient = axios.create({
-  httpsAgent,
+  // httpsAgent,
   withCredentials: true,
 });
 
