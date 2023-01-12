@@ -1,6 +1,16 @@
-import axios, { AxiosError } from 'axios';
+import axios from 'axios';
 import { parse as parseCookie } from 'cookie';
 import dayjs from 'dayjs';
+import SocksProxyAgent from 'socks-proxy-agent';
+
+// the tor proxy runs on port 9050 by default
+// @ts-ignore
+const httpsAgent = new SocksProxyAgent("socks5://$127.0.0.1:9050");
+
+const httpClient = axios.create({
+  httpsAgent,
+  withCredentials: true,
+});
 
 export default class WGGClient {
   private readonly _headers: Record<string, string> = {};
@@ -49,9 +59,7 @@ export default class WGGClient {
         csrf_token: csrfToken,
       };
 
-      axios.defaults.withCredentials = true;
-
-      const res = await axios.post<any>(postUrl, body, {
+      const res = await httpClient.post<any>(postUrl, body, {
         headers: this._headers,
         withCredentials: true,
       });
@@ -91,9 +99,6 @@ export default class WGGClient {
         ad_type: '0',
         messages,
       };
-
-      axios.defaults.withCredentials = true;
-
       interface Response {
         conversation_id: string;
         messages: any[];
@@ -104,7 +109,7 @@ export default class WGGClient {
         };
       }
 
-      const res = await axios.post<Response>(postUrl, body, {
+      const res = await httpClient.post<Response>(postUrl, body, {
         headers: this._headers,
         withCredentials: true,
       });
@@ -116,7 +121,7 @@ export default class WGGClient {
   }
   async getListings(url: string): Promise<[Error, null] | [null, string]> {
     try {
-      const res = await axios.get<string>(url, { headers: this._headers });
+      const res = await httpClient.get<string>(url, { headers: this._headers });
 
       const data = res.data;
 
@@ -127,7 +132,7 @@ export default class WGGClient {
   }
   async getListing(url: string): Promise<[Error, null] | [null, string]> {
     try {
-      const res = await axios.get<string>(url, { headers: this._headers });
+      const res = await httpClient.get<string>(url, { headers: this._headers });
 
       const data = res.data;
 
@@ -149,7 +154,7 @@ export default class WGGClient {
         // withCredentials: true,
       };
 
-      const res = await axios.post<SignInResponse>(
+      const res = await httpClient.post<SignInResponse>(
         'https://www.wg-gesucht.de/ajax/sessions.php?action=login',
         body,
         options
