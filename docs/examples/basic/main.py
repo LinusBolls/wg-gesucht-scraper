@@ -1,5 +1,7 @@
-import requests
 from time import sleep
+
+import requests
+from playsound import playsound
 
 puppet_accounts = [
     {
@@ -37,100 +39,187 @@ def fetch_listings(email, password):
 
 
 # register our puppet accounts as sessions at the api
-for acc in puppet_accounts:
-    fetch_listings(acc["email"], acc["password"])
+# for acc in puppet_accounts:
+#     fetch_listings(acc["email"], acc["password"])
 
-# while True:
 
-#     listings = fetch_listings(ACTIVE_EMAIL, ACTIVE_PASSWORD)
+def get_casual_german_flat_application(listing):
+    codeword = listing["codeWord"]
 
-#     for listing in listings:
+    return f"""
+Moin {listing["publisher"]["name"]["recommended"]},
 
-#         # listing["location"]["city"] is "Berlin"
-#         if not listing["userHasApplied"] and listing["endDate"] is None:
+{f"Codewort: {codeword} ;)" if codeword is not None else ""}
+Ein Freund und ich suchen nach einer langfristigen Unterkunft, da unsere vorübergehenden Mietverträge demnächst auslaufen.
+Die Wohnung würde uns sehr gelegen kommen, da sie sich in der Nähe unserer Uni befindet.
 
-#             codeword = listing["codeWord"]
+Wir sind beide für das Studium nach Berlin gezogen.
+Da wir die meiste Zeit an der Uni sind, brauchen wir nur ein entspanntes Plätzchen zum Schlafen und sind ansonsten sehr unkompliziert :)
 
-#             is_casual = listing["publisher"]["name"]["last"] is None
+Auf Anfrage sind wir jederzeit bereit, Dokumente wie unsere Studentenverträge oder die SCHUFA-Einträge unserer Eltern zur Verfügung zu stellen.
+Unsere Eltern können zudem für uns bürgen.
+Mehr Informationen über uns findest du in unserem Gesuch.
 
-#             ansprache = "du" if is_casual else "Sie"
+Falls du Interesse hast, würden wir uns sehr über eine Antwort freuen :)
 
-#             if "german" in listing["languages"]:
+Mit freundlichen Grüßen
+Linus Bolls
+"""
 
-#                 application = f"""
-# {"Moin" if is_casual else "Guten Tag"} {listing["publisher"]["name"]["recommended"]},
 
-# {f"Codewort: {codeword} ;)" if codeword is not None else ""}
-# Ein Freund und ich suchen nach einer langfristigen Unterkunft, da unsere vorübergehenden Mietverträge demnächst auslaufen.
-# Die Wohnung würde uns sehr gelegen kommen, da sie sich in der Nähe unserer Uni befindet.
+def get_formal_german_flat_application(listing):
+    codeword = listing["codeWord"]
 
-# Wir sind beide für das Studium nach Berlin gezogen.
-# Da wir die meiste Zeit an der Uni sind, brauchen wir nur ein entspanntes Plätzchen zum Schlafen und sind ansonsten sehr unkompliziert{" :)" if is_casual else "."}
+    return f"""
+Guten Tag {listing["publisher"]["name"]["recommended"]},
 
-# Auf Anfrage sind wir jederzeit bereit, Dokumente wie unsere Studentenverträge oder die SCHUFA-Einträge unserer Eltern zur Verfügung zu stellen.
-# Unsere Eltern können zudem für uns bürgen.
-# Mehr Informationen über uns {"findest du" if is_casual else "finden Sie"} in unserem Gesuch.
+{f"Codewort: {codeword} ;)" if codeword is not None else ""}
+Ein Freund und ich suchen nach einer langfristigen Unterkunft, da unsere vorübergehenden Mietverträge demnächst auslaufen.
+Die Wohnung würde uns sehr gelegen kommen, da sie sich in der Nähe unserer Uni befindet.
 
-# Falls {"du Interesse hast" if is_casual else "Sie Interesse haben"}, würden wir uns sehr über eine Antwort freuen :)
+Wir sind beide für das Studium nach Berlin gezogen.
+Da wir die meiste Zeit an der Uni sind, brauchen wir nur ein entspanntes Plätzchen zum Schlafen und sind ansonsten sehr unkompliziert.
 
-# Mit freundlichen Grüßen
-# Linus Bolls
-#                 """
+Auf Anfrage sind wir jederzeit bereit, Dokumente wie unsere Studentenverträge oder die SCHUFA-Einträge unserer Eltern zur Verfügung zu stellen.
+Unsere Eltern können zudem für uns bürgen.
+Mehr Informationen über uns finden Sie in unserem Gesuch.
 
-#             else:
+Falls Sie Interesse haben, würden wir uns sehr über eine Antwort freuen :)
 
-#                 application = f"""
-# Hi {listing["publisher"]["name"]["recommended"]},
+Mit freundlichen Grüßen
+Linus Bolls
+"""
 
-# {f"Codeword: {codeword} ;)" if codeword is not None else ""}
-# A friend of mine and myself are looking for a long-term accommodation.
-# The flat would be perfect for us, and it's close to our uni!
 
-# We both moved to Berlin to study, and spend most of our time at the uni.
-# We just need a cozy place to sleep and relax and are very uncomplicated tenants.
+def get_english_flat_application(listing):
+    codeword = listing["codeWord"]
 
-# On request we will send you further documents, like the SCHUFA of our parents and our prove of study.
+    return f"""
+Hi {listing["publisher"]["name"]["recommended"]},
 
-# Looking forward to hearing from you :)
+{f"Codeword: {codeword} ;)" if codeword is not None else ""}
+A friend of mine and myself are looking for a long-term accommodation.
+The flat would be perfect for us, and it's close to our uni!
 
-# Regards,
-# Linus Bolls
-#                 """
+We both moved to Berlin to study, and spend most of our time at the uni.
+We just need a cozy place to sleep and relax and are very uncomplicated tenants.
 
-#             # POST_NOTE_PARAMS = {
-#             #     "email": EMAIL,
-#             #     "password": PASSWORD,
-#             #     "listingId": listing["id"],
-#             #     "text": application,
-#             # }
-#             # post_res = requests.post(
-#             #     url=FLATFINDER_URL + "/notes",
-#             #     json=POST_NOTE_PARAMS,
-#             # )
+On request we will send you further documents, like the SCHUFA of our parents and our prove of study.
 
-#             POST_APPLICATION_PARAMS = {
-#                 "email": ACTIVE_EMAIL,
-#                 "password": ACTIVE_PASSWORD,
-#                 "listingId": listing["id"],
-#                 "messages": [application],
-#                 "attachedListingId": "9815570",
-#                 "quitIfExistingConversation": True
-#             }
-#             post_res = requests.post(
-#                 url=FLATFINDER_URL + "/applications",
-#                 json=POST_APPLICATION_PARAMS,
-#             )
+Looking forward to hearing from you :)
 
-#             listing_url = listing["url"]
+Regards,
+Linus Bolls
+"""
 
-#             if post_res.status_code == 201:
-#                 print(f"applied to {listing_url}")
 
-#             elif post_res.status_code == 200:
-#                 print(
-#                     f"did not apply to {listing_url} because there is an existing conversation")
+def get_german_wg_application(listing):
+    return None
 
-#             else:
-#                 print(f"error applying to {listing_url}", post_res)
+    codeword = listing["codeWord"]
 
-#             sleep(30)
+    return f"""
+Moin {listing["publisher"]["name"]["recommended"]},
+
+{f"Codewort: {codeword} ;)" if codeword is not None else ""}
+Ein Freund und ich suchen nach einer langfristigen Unterkunft, da unsere vorübergehenden Mietverträge demnächst auslaufen.
+Die Wohnung würde uns sehr gelegen kommen, da sie sich in der Nähe unserer Uni befindet.
+
+Wir sind beide für das Studium nach Berlin gezogen.
+Da wir die meiste Zeit an der Uni sind, brauchen wir nur ein entspanntes Plätzchen zum Schlafen und sind ansonsten sehr unkompliziert :)
+
+Auf Anfrage sind wir jederzeit bereit, Dokumente wie unsere Studentenverträge oder die SCHUFA-Einträge unserer Eltern zur Verfügung zu stellen.
+Unsere Eltern können zudem für uns bürgen.
+Mehr Informationen über uns findest du in unserem Gesuch.
+
+Falls du Interesse hast, würden wir uns sehr über eine Antwort freuen :)
+
+Mit freundlichen Grüßen
+Linus Bolls
+"""
+
+
+def get_english_wg_application(listing):
+    return None
+
+
+def get_application(listing):
+    is_casual = listing["publisher"]["name"]["last"] is None
+
+    if "german" in listing["languages"]:
+        if listing["type"] in ["FLAT", "SINGLE_ROOM_FLAT"]:
+
+            if is_casual:
+                return get_casual_german_flat_application(listing)
+            else:
+                return get_formal_german_flat_application(listing)
+
+        elif listing["type"] == "WG":
+
+            return get_german_wg_application(listing)
+
+    elif "english" in listing["languages"]:
+
+        if listing["type"] in ["FLAT", "SINGLE_ROOM_FLAT"]:
+
+            return get_english_flat_application(listing)
+
+        elif listing["type"] == "WG":
+
+            return get_english_wg_application(listing)
+
+    return None
+
+
+while True:
+
+    listings = fetch_listings(ACTIVE_EMAIL, ACTIVE_PASSWORD)
+
+    for listing in listings:
+
+        # listing["location"]["city"] is "Berlin"
+        if not listing["userHasApplied"] and listing["endDate"] is None and listing["type"] in ["FLAT", "SINGLE_ROOM_FLAT", "WG"]:
+
+            application = get_application(listing)
+
+            if application != None:
+
+                # POST_NOTE_PARAMS = {
+                #     "email": EMAIL,
+                #     "password": PASSWORD,
+                #     "listingId": listing["id"],
+                #     "text": application,
+                # }
+                # post_res = requests.post(
+                #     url=FLATFINDER_URL + "/notes",
+                #     json=POST_NOTE_PARAMS,
+                # )
+
+                POST_APPLICATION_PARAMS = {
+                    "email": ACTIVE_EMAIL,
+                    "password": ACTIVE_PASSWORD,
+                    "listingId": listing["id"],
+                    "messages": [application],
+                    "attachedListingId": "9815570",
+                    "quitIfExistingConversation": True
+                }
+                post_res = requests.post(
+                    url=FLATFINDER_URL + "/applications",
+                    json=POST_APPLICATION_PARAMS,
+                )
+
+                listing_url = listing["url"]
+
+                if post_res.status_code == 201:
+                    playsound("/Users/linusbolls/downloads/long_ding.mp3")
+
+                    print(f"applied to {listing_url}")
+
+                elif post_res.status_code == 200:
+                    print(
+                        f"did not apply to {listing_url} because there is an existing conversation")
+
+                else:
+                    print(f"error applying to {listing_url}", post_res)
+
+    sleep(30)

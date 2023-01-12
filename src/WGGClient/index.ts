@@ -1,11 +1,27 @@
 import axios from 'axios';
+import { spawn } from 'child_process';
 import { parse as parseCookie } from 'cookie';
 import dayjs from 'dayjs';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 
 // the tor proxy runs on port 9050 by default
 // @ts-ignore
-const httpsAgent = new SocksProxyAgent("socks5://$127.0.0.1:9050");
+const httpsAgent = new SocksProxyAgent("socks5://localhost:9050");
+
+// const proxy = spawn("docker", [
+//   ...["run", "--rm", "-i", "-a", "stdout"],
+//   ...["-p", "127.0.0.1:9050:9050/tcp"],
+//   ...["osminogin/tor-simple:latest"],
+// ]);
+
+// proxy.stdout.on("data", (data) => {
+//   console.log("sache von dings:", data)
+//   process.stderr.write(data);
+//   if (data.toString().includes("Opened Socks listener")) {
+//     // @ts-ignore
+//     run().finally(() => proxy.kill("SIGINT"));
+//   }
+// });
 
 const httpClient = axios.create({
   // httpsAgent,
