@@ -331,6 +331,9 @@ app.post('/v1/applications', handleSession(), async (req, res) => {
     );
 
   if (postApplicationErr != null) {
+
+    console.error("error occured trying to post application:", postApplicationErr)
+
     res.status(400).json({
       ok: 0,
       data: null,

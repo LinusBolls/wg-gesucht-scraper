@@ -1,12 +1,9 @@
-import axios from 'axios';
 import { spawn } from 'child_process';
+
+import axios, { AxiosInstance } from 'axios';
 import { parse as parseCookie } from 'cookie';
 import dayjs from 'dayjs';
 import { SocksProxyAgent } from 'socks-proxy-agent';
-
-// the tor proxy runs on port 9050 by default
-// @ts-ignore
-const httpsAgent = new SocksProxyAgent("socks5://localhost:9050");
 
 // const proxy = spawn("docker", [
 //   ...["run", "--rm", "-i", "-a", "stdout"],
@@ -16,6 +13,7 @@ const httpsAgent = new SocksProxyAgent("socks5://localhost:9050");
 
 // proxy.stdout.on("data", (data) => {
 //   console.log("sache von dings:", data)
+
 //   process.stderr.write(data);
 //   if (data.toString().includes("Opened Socks listener")) {
 //     // @ts-ignore
@@ -23,11 +21,35 @@ const httpsAgent = new SocksProxyAgent("socks5://localhost:9050");
 //   }
 // });
 
-const httpClient = axios.create({
-  // httpsAgent,
-  withCredentials: true,
-});
+const getTorProxiedClient = (port: number) => {
 
+  // the "h" component in the protocol is to also make the ssl check over tor
+  const torProxyUri = "socks5h://localhost:" + port
+
+  const httpsAgent = new SocksProxyAgent(torProxyUri);
+
+  const httpClient = axios.create({
+    httpsAgent,
+    withCredentials: true,
+  });
+  return httpClient
+}
+
+const httpClient = getTorProxiedClient(9050)
+
+async function getTorIp(torProxiedClient: AxiosInstance) {
+
+  const res = await torProxiedClient.get<{ IsTor: boolean, IP: string }>("https://check.torproject.org/api/ip")
+
+  const { IsTor, IP } = res.data
+
+  return IP
+}
+
+async function changeTorIp() {
+
+  spawn("killall", ["-HUP", "tor"]);
+}
 export default class WGGClient {
   private readonly _headers: Record<string, string> = {};
   private readonly _userId: string;

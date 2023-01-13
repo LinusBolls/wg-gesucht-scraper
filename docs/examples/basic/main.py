@@ -220,6 +220,7 @@ while True:
                         f"did not apply to {listing_url} because there is an existing conversation")
 
                 else:
-                    print(f"error applying to {listing_url}", post_res)
+                    print(f"error applying to {listing_url}",
+                          post_res.status_code, post_res.json())
 
     sleep(30)
