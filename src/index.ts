@@ -13,13 +13,8 @@ import parseListingPage from './domParsing/parseListingPage';
 import { Listing, UserDependendListingData } from './types/Listing';
 import getCsrfToken from './utils/getCsrfToken';
 import { normalizeWhitespace } from './utils/stringParsing';
-
-const ListingType = {
-  // SINGLE_ROOM_FLAT: "https://www.wg-gesucht.de/1-zimmer-wohnungen-in-Berlin.8.1.1.0.html",
-  // WG: "https://www.wg-gesucht.de/wg-zimmer-in-Berlin.8.0.1.0.html",
-  FLAT: "https://www.wg-gesucht.de/wohnungen-in-Berlin.8.2.1.0.html",
-  // HOUSE: "https://www.wg-gesucht.de/haeuser-in-Berlin.8.3.1.0.html",
-}
+import { getTorProxiedClient } from './WGGClient/torProxy';
+import EntryPointUrls from './config/EntryPointUrls';
 
 loadEnv();
 
@@ -29,27 +24,32 @@ app.use(express.json());
 app.use(helmet());
 app.use(cors());
 
-let sessions: Record<string, any> = {};
-let listings: Listing[] = [];
+type Session = any
+
+interface RequestListing { }
+
+let sessions: Record<string, Session> = {};
+let offers: Listing[] = [];
+let requests: RequestListing[] = []
+
 
 function createRandomSessionGenerator() {
-
-  let currentSessionIdx = 0
+  let currentSessionIdx = 0;
 
   return () => {
+    if (Object.values(sessions).length < 1) return null;
 
-    if (Object.values(sessions).length < 1) return null
+    if (currentSessionIdx >= Object.values(sessions).length)
+      currentSessionIdx = 0;
 
-    if (currentSessionIdx >= Object.values(sessions).length) currentSessionIdx = 0
+    const session = Object.values(sessions)[currentSessionIdx];
 
-    const session = Object.values(sessions)[currentSessionIdx]
+    currentSessionIdx++;
 
-    currentSessionIdx++
-
-    return session
-  }
+    return session;
+  };
 }
-const getRandomSession = createRandomSessionGenerator()
+const getRandomSession = createRandomSessionGenerator();
 
 const SessionSchema = z.object({
   email: z.string().email(), // .endsWith("@code.berlin"),
@@ -74,9 +74,15 @@ function handleSession() {
     if (email in sessions) {
       session = sessions[email];
     } else {
-      const [signInErr, metaIdentity] = await WGGClient.signIn(email, password);
+      const torProxiedHttpClient = getTorProxiedClient(9050);
 
-      console.log("signInErr:", signInErr)
+      const [signInErr, metaIdentity] = await WGGClient.signIn(
+        torProxiedHttpClient,
+        email,
+        password
+      );
+
+      console.log('signInErr:', signInErr);
 
       isSignedIn = signInErr == null;
 
@@ -86,6 +92,7 @@ function handleSession() {
         return;
       }
       session = {
+        client: torProxiedHttpClient,
         isSignedIn: true,
         email,
         password,
@@ -96,14 +103,17 @@ function handleSession() {
       };
       sessions[email] = session;
     }
-    (req as any).meta = { session };
+    // @ts-ignore
+    const { torProxiedClient: disard, ...safeSession } = session;
+
+    (req as any).meta = { session: safeSession };
 
     next();
   }) as RequestHandler;
 }
 
 app.get('/v1/fetch', async (req, res) => {
-  await fetchListings();
+  await fetchOffers();
 
   res.json({ ok: 1 });
 });
@@ -130,7 +140,7 @@ function registerAction(
 }
 
 app.get('/v1/listings', handleSession(), async (req, res) => {
-  const enrichedListings = listings.map<Listing & UserDependendListingData>(
+  const enrichedListings = offers.map<Listing & UserDependendListingData>(
     (listing) => {
       const userHasSeen = hasActionHappened(
         (req as any).meta.email,
@@ -184,11 +194,14 @@ app.post('/v1/notes', handleSession(), async (req, res) => {
   }
   const { listingId, text } = data;
 
+  const torProxiedHttpClient = sessions[(req as any).meta.email].client;
+
   const client = new WGGClient(
+    torProxiedHttpClient,
     (req as any).meta.session.cookie,
     (req as any).meta.session.userId
   );
-  const listing = listings.filter((i) => i.id === listingId)[0]!;
+  const listing = offers.filter((i) => i.id === listingId)[0]!;
 
   const [getListingPageErr, listingPage] = await client.getListing(listing.url);
 
@@ -283,11 +296,14 @@ app.post('/v1/applications', handleSession(), async (req, res) => {
     quitIfExistingConversation = true,
   } = data;
 
+  const torProxiedHttpClient = sessions[(req as any).meta.email].client;
+
   const client = new WGGClient(
+    torProxiedHttpClient,
     (req as any).meta.session.cookie,
     (req as any).meta.session.userId
   );
-  const listing = listings.filter((i) => i.id === listingId)[0]!;
+  const listing = offers.filter((i) => i.id === listingId)[0]!;
 
   const [getListingPageErr, listingPageText] = await client.getListing(
     listing.url
@@ -310,7 +326,8 @@ app.post('/v1/applications', handleSession(), async (req, res) => {
     sidepanelContactInfoContainerEl?.querySelector('.btn-md');
 
   const hasExistingConversation =
-    normalizeWhitespace(actionButtonEl?.innerText ?? null) === 'UNTERHALTUNG ANSEHEN';
+    normalizeWhitespace(actionButtonEl?.innerText ?? null) ===
+    'UNTERHALTUNG ANSEHEN';
 
   if (hasExistingConversation && quitIfExistingConversation) {
     res.status(200).json({
@@ -331,8 +348,10 @@ app.post('/v1/applications', handleSession(), async (req, res) => {
     );
 
   if (postApplicationErr != null) {
-
-    console.error("error occured trying to post application:", postApplicationErr)
+    console.error(
+      'error occured trying to post application:',
+      postApplicationErr
+    );
 
     res.status(400).json({
       ok: 0,
@@ -351,25 +370,38 @@ app.post('/v1/applications', handleSession(), async (req, res) => {
   });
 });
 
-fetchListings();
+fetchOffers();
 
-setInterval(fetchListings, 1000 * 30);
+setInterval(fetchOffers, 1000 * 30);
 
 app.listen(process.env.PORT, () => {
   console.info(`app listening at http://127.0.0.1:${process.env.PORT}`);
 });
 
-async function fetchListings() {
+async function fetchOffers() {
+  for (const {
+    baseUrl: url,
+    listingTypes,
+    propertyTypes,
+    cities,
+    port,
+    title,
+  } of EntryPointUrls) {
+    const session = getRandomSession();
 
-  for (const [listingType, url] of Object.entries(ListingType)) {
+    if (session == null) return;
 
-    const session = getRandomSession()
+    // refactor: get from ListingType
+    const torProxiedHttpClient = getTorProxiedClient(port);
 
-    if (session == null) return
-
-    const wggClient = new WGGClient(session.cookie, session.userId);
-
-    console.info('fetching listings for', url, "using", session.email);
+    const wggClient = new WGGClient(
+      torProxiedHttpClient,
+      session.cookie,
+      session.userId
+    );
+    console.info(
+      `fetching "${title}" listings using "${session.email}" over tor proxy "socks5h://localhost:${port}"`
+    );
 
     const [getListingsErr, listingsPageHtml] = await wggClient.getListings(url);
 
@@ -383,17 +415,16 @@ async function fetchListings() {
       listingOverviews
         .filter((i) => !i.isCompanyListing)
         // we don't want listings we already know either, for bandwidth reasons
-        .filter(i => {
-          const cachedListing = listings.filter(
-            (j) => j.id === i.id
-          )[0];
-          const isKnown = cachedListing != null
+        .filter((i) => {
+          const cachedListing = offers.filter((j) => j.id === i.id)[0];
+          const isKnown = cachedListing != null;
 
-          return !isKnown
+          return !isKnown;
         })
         .map(async (listingOverviewData) => {
-
-          console.info('fetching listing', listingOverviewData.url, "using", session.email);
+          console.info(
+            `fetching "${listingOverviewData.propertyType}" listing "${listingOverviewData.url}" using "${session.email}" over tor proxy "socks5h://localhost:${port}"`
+          );
 
           const [getListingErr, listingPageHtml] = await wggClient.getListing(
             listingOverviewData.url
@@ -413,14 +444,17 @@ async function fetchListings() {
             ...listingPageData,
             firstScrapedDate,
             lastScrapedDate,
-            type: listingType,
           };
         })
     );
-    listings = [...listings, ...newListings]
+    offers = [...offers, ...newListings];
   }
 
-  async function callWebhook(url: string, event: 'NEW_LISTING', data: Listing[]) {
+  async function callWebhook(
+    url: string,
+    event: 'NEW_LISTING',
+    data: Listing[]
+  ) {
     const body = {
       event,
       data,
@@ -447,12 +481,15 @@ async function fetchListings() {
 
     const session = sessions[email];
 
-    const client = new WGGClient(session.id, password);
+    // refactor: get from session
+    const torProxiedHttpClient = getTorProxiedClient(9050);
+
+    const client = new WGGClient(torProxiedHttpClient, session.id, password);
 
     for (const [listingId, actions] of Object.entries(actionData)) {
       for (const [action, payload] of Object.entries(actions!)) {
         if (action === 'application') {
-          const listing = listings.filter((i) => i.id === listingId)[0]!;
+          const listing = offers.filter((i) => i.id === listingId)[0]!;
 
           const [getListingPageErr, listingPage] = await client.getListing(
             listing.url
@@ -465,7 +502,7 @@ async function fetchListings() {
           await client.postListingApplication(listingId, csrfToken, payload);
         }
         if (action === 'note') {
-          const listing = listings.filter((i) => i.id === listingId)[0]!;
+          const listing = offers.filter((i) => i.id === listingId)[0]!;
 
           const [getListingPageErr, listingPage] = await client.getListing(
             listing.url

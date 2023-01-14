@@ -1,60 +1,15 @@
-import { spawn } from 'child_process';
-
-import axios, { AxiosInstance } from 'axios';
+import { AxiosInstance } from 'axios';
 import { parse as parseCookie } from 'cookie';
 import dayjs from 'dayjs';
-import { SocksProxyAgent } from 'socks-proxy-agent';
 
-// const proxy = spawn("docker", [
-//   ...["run", "--rm", "-i", "-a", "stdout"],
-//   ...["-p", "127.0.0.1:9050:9050/tcp"],
-//   ...["osminogin/tor-simple:latest"],
-// ]);
-
-// proxy.stdout.on("data", (data) => {
-//   console.log("sache von dings:", data)
-
-//   process.stderr.write(data);
-//   if (data.toString().includes("Opened Socks listener")) {
-//     // @ts-ignore
-//     run().finally(() => proxy.kill("SIGINT"));
-//   }
-// });
-
-const getTorProxiedClient = (port: number) => {
-
-  // the "h" component in the protocol is to also make the ssl check over tor
-  const torProxyUri = "socks5h://localhost:" + port
-
-  const httpsAgent = new SocksProxyAgent(torProxyUri);
-
-  const httpClient = axios.create({
-    httpsAgent,
-    withCredentials: true,
-  });
-  return httpClient
-}
-
-const httpClient = getTorProxiedClient(9050)
-
-async function getTorIp(torProxiedClient: AxiosInstance) {
-
-  const res = await torProxiedClient.get<{ IsTor: boolean, IP: string }>("https://check.torproject.org/api/ip")
-
-  const { IsTor, IP } = res.data
-
-  return IP
-}
-
-async function changeTorIp() {
-
-  spawn("killall", ["-HUP", "tor"]);
-}
 export default class WGGClient {
   private readonly _headers: Record<string, string> = {};
   private readonly _userId: string;
+  private readonly _httpClient: AxiosInstance;
 
-  constructor(cookie: string, userId: string) {
+  constructor(httpClient: AxiosInstance, cookie: string, userId: string) {
+    this._httpClient = httpClient;
+
     const cookieData = parseCookie(cookie);
 
     this._headers = {
@@ -97,13 +52,62 @@ export default class WGGClient {
         csrf_token: csrfToken,
       };
 
-      const res = await httpClient.post<any>(postUrl, body, {
+      const res = await this._httpClient.post<any>(postUrl, body, {
         headers: this._headers,
         withCredentials: true,
       });
       const { detail } = res.data;
 
       return [null, detail];
+    } catch (err) {
+      return [err as Error, null];
+    }
+  }
+  async postGesuchtAnswer(
+    offerId: string,
+    csrfToken: string,
+    texts: string[],
+    attachedListingId?: string | null
+  ) {
+    try {
+      const postUrl =
+        'https://www.wg-gesucht.de/ajax/conversations.php?action=conversations';
+
+      let messages = texts.map((text) => ({
+        content: text,
+        message_type: 'text',
+      }));
+
+      if (attachedListingId != null) {
+        messages.push({
+          content: attachedListingId,
+          message_type: 'attached_request',
+        });
+      }
+
+      const body = {
+        user_id: this._userId,
+        ad_id: offerId,
+        csrf_token: csrfToken,
+        ad_type: '1',
+        messages,
+      };
+      interface Response {
+        conversation_id: string;
+        messages: any[];
+        _links: {
+          self: {
+            href: string;
+          };
+        };
+      }
+
+      const res = await this._httpClient.post<Response>(postUrl, body, {
+        headers: this._headers,
+        withCredentials: true,
+      });
+
+      return [null, res.data];
     } catch (err) {
       return [err as Error, null];
     }
@@ -147,7 +151,7 @@ export default class WGGClient {
         };
       }
 
-      const res = await httpClient.post<Response>(postUrl, body, {
+      const res = await this._httpClient.post<Response>(postUrl, body, {
         headers: this._headers,
         withCredentials: true,
       });
@@ -159,7 +163,9 @@ export default class WGGClient {
   }
   async getListings(url: string): Promise<[Error, null] | [null, string]> {
     try {
-      const res = await httpClient.get<string>(url, { headers: this._headers });
+      const res = await this._httpClient.get<string>(url, {
+        headers: this._headers,
+      });
 
       const data = res.data;
 
@@ -170,7 +176,9 @@ export default class WGGClient {
   }
   async getListing(url: string): Promise<[Error, null] | [null, string]> {
     try {
-      const res = await httpClient.get<string>(url, { headers: this._headers });
+      const res = await this._httpClient.get<string>(url, {
+        headers: this._headers,
+      });
 
       const data = res.data;
 
@@ -179,7 +187,11 @@ export default class WGGClient {
       return [err as Error, null];
     }
   }
-  static async signIn(username: string, password: string) {
+  static async signIn(
+    httpClient: AxiosInstance,
+    username: string,
+    password: string
+  ) {
     try {
       const body = {
         login_email_username: username,

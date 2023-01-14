@@ -53,9 +53,9 @@ export default function parseListingPage(
     tagContainerEl == null
       ? []
       : tagContainerEl
-        .querySelectorAll('.row div')
-        .map((i) => normalizeWhitespace(i.innerText)!)
-        .filter((i) => i.length > 0);
+          .querySelectorAll('.row div')
+          .map((i) => normalizeWhitespace(i.innerText)!)
+          .filter((i) => i.length > 0);
 
   const totalRentEur = parseEuros(totalRentEl?.innerText!) || 0;
 
@@ -137,8 +137,8 @@ export default function parseListingPage(
 
   const publisherName = parseName(rawPublisherName);
 
-  console.log(
-    'parsed name',
+  console.info(
+    'parsed recommended name',
     publisherName.recommended,
     'from',
     rawPublisherName
@@ -158,7 +158,8 @@ export default function parseListingPage(
     sidepanelContactInfoContainerEl?.querySelector('.btn-md');
 
   const hasExistingConversation =
-    normalizeWhitespace(actionButtonEl?.innerText ?? null) === 'UNTERHALTUNG ANSEHEN';
+    normalizeWhitespace(actionButtonEl?.innerText ?? null) ===
+    'UNTERHALTUNG ANSEHEN';
 
   const onlineSinceEl =
     sidepanelContactInfoContainerEl?.querySelector('div.mb5');

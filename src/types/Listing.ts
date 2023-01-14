@@ -1,3 +1,5 @@
+type PropertyType = 'FLATSHARE' | 'FLAT' | 'SINGLE_ROOM_FLAT' | 'HOUSE';
+
 export interface ListingPreviewData {
   id: string;
   isCompanyListing: boolean;
@@ -11,6 +13,8 @@ export interface ListingPreviewData {
   costs: {
     totalRentEur: number;
   };
+  propertyType: PropertyType;
+  isDeactivated: boolean;
 }
 export interface ListingPageData {
   isSchufaRequired: boolean;

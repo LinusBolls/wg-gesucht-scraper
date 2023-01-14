@@ -221,6 +221,6 @@ while True:
 
                 else:
                     print(f"error applying to {listing_url}",
-                          post_res.status_code, post_res.json())
+                          post_res.status_code)
 
     sleep(30)

@@ -32,23 +32,35 @@ function parseListingCard(listingCard: HTMLElement): ListingPreviewData {
     'title'
   );
 
+  /**
+   * ribbon that says "deactivated", so far only observed for houses
+   * these houses don't have a price, date range, or publisher name
+   */
+  const isDeactivatedEl = listingCard.querySelector('.ribbon-deactivated');
+
+  const isDeactivated = isDeactivatedEl != null;
+
   const descEl = assertNode(
     listingCard,
     listingCard.querySelector('.card_body .row .col-xs-11 span'),
     'description'
   );
 
-  const priceEl = assertNode(
-    listingCard,
-    listingCard.querySelector('.row.middle > :nth-child(1) b'),
-    'price'
-  );
+  const priceEl = isDeactivated
+    ? null
+    : assertNode(
+        listingCard,
+        listingCard.querySelector('.row.middle > :nth-child(1) b'),
+        'price'
+      );
 
-  const dateEl = assertNode(
-    listingCard,
-    listingCard.querySelector('.row.middle > .text-center:nth-child(2)'),
-    'date'
-  );
+  const dateEl = isDeactivated
+    ? null
+    : assertNode(
+        listingCard,
+        listingCard.querySelector('.row.middle > .text-center:nth-child(2)'),
+        'date'
+      );
 
   const spaceEl = assertNode(
     listingCard,
@@ -64,11 +76,34 @@ function parseListingCard(listingCard: HTMLElement): ListingPreviewData {
 
   const shortDesc = normalizeWhitespace(descEl.innerText)!;
 
-  const totalRentEur = parseEuros(priceEl.innerText)!;
+  const [
+    rawPropertyType = null,
+    rawGeneralLocation = null,
+    rawSpecificLocation = null,
+  ] = shortDesc?.split(' | ') ?? [];
+
+  const propertyType = (() => {
+    // 4er WG | Berlin Pankow | Mühlenstraße 15
+    // 1-Zimmer-Wohnung | Berlin Neukölln | Erkstr
+    // 2-Zimmer-Wohnung | Berlin Mitte | Friedrichstr
+    // 3er WG | Berlin Friedrichshain | Müggelstraße 9
+    // 5,5-Zimmer-Haus | Berlin Schweizer Viertel | Glarner Str
+    // 4-Zimmer-Haus | Berlin Pankow | Strasse 52a
+
+    if (rawPropertyType?.includes('1-Zimmer-Wohnung'))
+      return 'SINGLE_ROOM_FLAT';
+    if (rawPropertyType?.includes('Zimmer-Wohnung')) return 'FLAT';
+    if (rawPropertyType?.includes('WG')) return 'FLATSHARE';
+    if (rawPropertyType?.includes('Haus')) return 'HOUSE';
+
+    throw new Error(`failed to parse rawPropertyType "${rawPropertyType}"`);
+  })();
+
+  const totalRentEur = parseEuros(priceEl?.innerText ?? null)!;
 
   const spaceSquareMeters = parseSquareMeters(spaceEl.innerText);
 
-  const dateRange = normalizeWhitespace(dateEl.innerText);
+  const dateRange = normalizeWhitespace(dateEl?.innerText ?? null);
 
   const { startDate, endDate } = parseDateRange(dateRange!);
 
@@ -88,6 +123,8 @@ function parseListingCard(listingCard: HTMLElement): ListingPreviewData {
     startDate,
     endDate,
     isCompanyListing,
+    propertyType,
+    isDeactivated,
   };
 }
 
