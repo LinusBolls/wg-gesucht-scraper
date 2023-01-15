@@ -142,21 +142,21 @@ app.get('/v1/listings', handleSession(), async (req, res) => {
   const enrichedListings = offers.map<Listing & UserDependendListingData>(
     (listing) => {
       const userHasSeen = hasActionHappened(
-        (req as any).meta.email,
+        (req as any).meta.session.email,
         'SAW',
         listing.id
       );
       const userHasMadeNote = hasActionHappened(
-        (req as any).meta.email,
+        (req as any).meta.session.email,
         'MADE_NOTE',
         listing.id
       );
       const userHasApplied = hasActionHappened(
-        (req as any).meta.email,
+        (req as any).meta.session.email,
         'APPLIED',
         listing.id
       );
-      registerAction((req as any).meta.email, 'SAW', listing.id);
+      registerAction((req as any).meta.session.email, 'SAW', listing.id);
 
       const sache: UserDependendListingData = {
         userHasSeen,
@@ -193,7 +193,7 @@ app.post('/v1/notes', handleSession(), async (req, res) => {
   }
   const { listingId, text } = data;
 
-  const torProxiedHttpClient = sessions[(req as any).meta.email].client;
+  const torProxiedHttpClient = sessions[(req as any).meta.session.email].client;
 
   const client = new WGGClient(
     torProxiedHttpClient,
@@ -224,7 +224,7 @@ app.post('/v1/notes', handleSession(), async (req, res) => {
     });
     return;
   }
-  registerAction((req as any).meta.email, 'MADE_NOTE', listingId);
+  registerAction((req as any).meta.session.email, 'MADE_NOTE', listingId);
 
   res.status(201).json({
     ok: 1,
@@ -246,7 +246,7 @@ app.post('/v1/webhooks', handleSession(), async (req, res) => {
   }
   const { url } = data;
 
-  sessions[(req as any).meta.email].webhook = {
+  sessions[(req as any).meta.session.email].webhook = {
     isRegistered: true,
     url,
   };
@@ -262,7 +262,7 @@ app.post('/v1/webhooks', handleSession(), async (req, res) => {
 });
 
 app.delete('/v1/webhooks', handleSession(), async (req, res) => {
-  sessions[(req as any).meta.email].webhook = {
+  sessions[(req as any).meta.session.email].webhook = {
     isRegistered: false,
   };
 
@@ -295,10 +295,7 @@ app.post('/v1/applications', handleSession(), async (req, res) => {
     quitIfExistingConversation = true,
   } = data;
 
-  console.log("sessions:", sessions)
-  console.log("req email:", (req as any).meta.email)
-
-  const torProxiedHttpClient = sessions[(req as any).meta.email].client;
+  const torProxiedHttpClient = sessions[(req as any).meta.session.email].client;
 
   const client = new WGGClient(
     torProxiedHttpClient,
@@ -363,7 +360,7 @@ app.post('/v1/applications', handleSession(), async (req, res) => {
     return;
   }
 
-  registerAction((req as any).meta.email, 'APPLIED', listingId);
+  registerAction((req as any).meta.session.email, 'APPLIED', listingId);
 
   res.status(201).json({
     ok: 1,
