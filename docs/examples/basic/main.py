@@ -47,7 +47,7 @@ def get_casual_german_flat_application(listing):
     codeword = listing["codeWord"]
 
     return f"""
-Moin {listing["publisher"]["name"]["recommended"]},
+Moin {listing["publisher"]["name"]["rmmended"]},
 
 {f"Codewort: {codeword} ;)" if codeword is not None else ""}
 Ein Freund und ich suchen nach einer langfristigen Unterkunft, da unsere vorübergehenden Mietverträge demnächst auslaufen.

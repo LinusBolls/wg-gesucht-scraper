@@ -3,7 +3,6 @@ import { parse as parseHtml } from 'node-html-parser';
 
 import { parseCodeword } from '../sachen/parseCodeword';
 import { ListingPageData } from '../types/Listing';
-import getCsrfToken from '../utils/getCsrfToken';
 import getLanguageFromTexts from '../utils/getLanguageFromTexts';
 import {
   normalizeWhitespace,
@@ -53,9 +52,9 @@ export default function parseListingPage(
     tagContainerEl == null
       ? []
       : tagContainerEl
-          .querySelectorAll('.row div')
-          .map((i) => normalizeWhitespace(i.innerText)!)
-          .filter((i) => i.length > 0);
+        .querySelectorAll('.row div')
+        .map((i) => normalizeWhitespace(i.innerText)!)
+        .filter((i) => i.length > 0);
 
   const totalRentEur = parseEuros(totalRentEl?.innerText!) || 0;
 

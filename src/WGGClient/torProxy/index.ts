@@ -13,8 +13,7 @@ import { SocksProxyAgent } from 'socks-proxy-agent';
 
 //   process.stderr.write(data);
 //   if (data.toString().includes("Opened Socks listener")) {
-//     // @ts-ignore
-//     run().finally(() => proxy.kill("SIGINT"));
+//      proxy.kill("SIGINT"));
 //   }
 // });
 
@@ -63,10 +62,10 @@ export async function checkTorConnection(port: number) {
 
     console.info(
       "[Tor Proxy] connected to tor proxy '" +
-        torProxyUri +
-        "' with exit ip '" +
-        ip +
-        "'"
+      torProxyUri +
+      "' with exit ip '" +
+      ip +
+      "'"
     );
   } catch (err) {
     const isCausedByUnregisteredTorPort =
@@ -76,12 +75,15 @@ export async function checkTorConnection(port: number) {
     if (isCausedByUnregisteredTorPort) {
       console.error(
         "[Tor Proxy] failed to connect to tor proxy '" +
-          torProxyUri +
-          "': ECONNREFUSED"
+        torProxyUri +
+        "': ECONNREFUSED"
       );
 
       console.info(
         `add 'SOCKSPort ${port}' to your torrc and restart the tor service`
+      );
+      console.info(
+        `depending on your environment you might also have to add 'SOCKSPort [::1]:${port}' to your torrc to support ipv6 connections and restart the tor service`
       );
 
       process.exit();
@@ -89,7 +91,6 @@ export async function checkTorConnection(port: number) {
     console.error(
       "[Tor Proxy] failed to connect to tor proxy '" + torProxyUri + "'"
     );
-
     process.exit();
   }
 }

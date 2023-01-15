@@ -1,5 +1,45 @@
 type PropertyType = 'FLATSHARE' | 'FLAT' | 'SINGLE_ROOM_FLAT' | 'HOUSE';
 
+export interface RequestPreviewData {
+  id: string
+  url: string
+  title: string
+  shortDesc: string
+  spaceSquareMeters: number | null;
+  startDate: Date | null;
+
+  costs: {
+    totalRentEur: number;
+  };
+  propertyType: PropertyType;
+}
+export interface RequestPageData {
+  hasSchufa: boolean
+  languages: string[];
+  textParagraphs: string[];
+  entireText: string;
+  publishedDate: Date | null;
+
+  publisher: ListingPublisher;
+  // location: ListingLocation;
+  // costs: ListingCosts;
+  //   name
+  //   title *
+  //   city *
+  //   rubrik *
+  //   mietart *
+  //   lage *
+  //   gesucht ab *
+  //     max miete *
+  //       min größe
+  // haustyp *
+  //   einrichtung
+  // sonstiges
+  // sprachen
+
+}
+
+
 export interface ListingPreviewData {
   id: string;
   isCompanyListing: boolean;

@@ -24,14 +24,13 @@ app.use(express.json());
 app.use(helmet());
 app.use(cors());
 
-type Session = any
+type Session = any;
 
 interface RequestListing { }
 
 let sessions: Record<string, Session> = {};
 let offers: Listing[] = [];
-let requests: RequestListing[] = []
-
+let requests: RequestListing[] = [];
 
 function createRandomSessionGenerator() {
   let currentSessionIdx = 0;
@@ -295,6 +294,9 @@ app.post('/v1/applications', handleSession(), async (req, res) => {
     attachedListingId = null,
     quitIfExistingConversation = true,
   } = data;
+
+  console.log("sessions:", sessions)
+  console.log("req email:", (req as any).meta.email)
 
   const torProxiedHttpClient = sessions[(req as any).meta.email].client;
 
