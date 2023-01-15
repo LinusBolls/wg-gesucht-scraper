@@ -166,24 +166,24 @@ export default function parseListingPage(
   const onlineSinceText = normalizeWhitespace(onlineSinceEl?.innerText ?? null);
 
   const publishedDate = (() => {
-    if (/ seconds/.test(onlineSinceText!)) {
+    if (/ sekunden/.test(onlineSinceText!)) {
       return dayjs()
-        .subtract(parseInt(onlineSinceText!.replace(/ seconds/, '')), 'seconds')
+        .subtract(parseInt(onlineSinceText!.replace(/ sekunden/, '')), 'seconds')
         .toDate();
     }
-    if (/ minutes/.test(onlineSinceText!)) {
+    if (/ minuten/.test(onlineSinceText!)) {
       return dayjs()
-        .subtract(parseInt(onlineSinceText!.replace(/ minutes/, '')), 'minutes')
+        .subtract(parseInt(onlineSinceText!.replace(/ minuten/, '')), 'minutes')
         .toDate();
     }
-    if (/ hours/.test(onlineSinceText!)) {
+    if (/ stunden/.test(onlineSinceText!)) {
       return dayjs()
-        .subtract(parseInt(onlineSinceText!.replace(/ hours/, '')), 'hours')
+        .subtract(parseInt(onlineSinceText!.replace(/ stunden/, '')), 'hours')
         .toDate();
     }
-    if (/ days/.test(onlineSinceText!)) {
+    if (/ tage/.test(onlineSinceText!)) {
       return dayjs()
-        .subtract(parseInt(onlineSinceText!.replace(/ days/, '')), 'days')
+        .subtract(parseInt(onlineSinceText!.replace(/ tage/, '')), 'days')
         .toDate();
     }
     return null;

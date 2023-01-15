@@ -10,7 +10,7 @@ import { config as loadEnv } from 'dotenv';
 import WGGClient from './WGGClient';
 import parseListingsPage from './domParsing/parseListingsPage';
 import parseListingPage from './domParsing/parseListingPage';
-import { Listing, UserDependendListingData } from './types/Listing';
+import { Listing, RequestListing, UserDependendListingData } from './types/Listing';
 import getCsrfToken from './utils/getCsrfToken';
 import { normalizeWhitespace } from './utils/stringParsing';
 import { getTorProxiedClient } from './WGGClient/torProxy';
@@ -25,8 +25,6 @@ app.use(helmet());
 app.use(cors());
 
 type Session = any;
-
-interface RequestListing { }
 
 let sessions: Record<string, Session> = {};
 let offers: Listing[] = [];
@@ -404,7 +402,7 @@ async function fetchOffers() {
 
     const [getListingsErr, listingsPageHtml] = await wggClient.getListings(url);
 
-    if (getListingsErr != null) throw new Error('sache');
+    if (getListingsErr != null) throw new Error('error fetching offer listings:', getListingsErr);
 
     const { listings: listingOverviews, partneredListings } =
       parseListingsPage(listingsPageHtml);

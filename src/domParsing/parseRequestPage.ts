@@ -2,6 +2,7 @@ import dayjs from 'dayjs';
 import { parse as parseHtml } from 'node-html-parser';
 
 import { parseCodeword } from '../sachen/parseCodeword';
+import { RequestListing } from '../types/Listing';
 import getLanguageFromTexts from '../utils/getLanguageFromTexts';
 import {
     normalizeWhitespace,
@@ -11,9 +12,17 @@ import {
 
 export default function parseListingPage(
     listingPageHtmlStr: string
-): any {
+): RequestListing {
     const listingPage = parseHtml(listingPageHtmlStr);
 
+    interface Stats {
+        Zeitraum: string
+        Zimmeranzahl: string
+        Stadtteile: string
+        Haustyp: string
+        Einrichtung: string
+        Sonstiges: string
+    }
     const statRowEls = listingPage
         .querySelectorAll('.table tr')
         .filter((j) => j.querySelectorAll('td').length >= 2);
@@ -29,7 +38,7 @@ export default function parseListingPage(
 
         return [statKey, statValue];
     });
-    const stats = Object.fromEntries(statRows);
+    const stats: Stats = Object.fromEntries(statRows);
 
     const totalRentEl = listingPage.querySelector(
         ':nth-child(2) h2.headline-key-facts'
@@ -57,7 +66,8 @@ export default function parseListingPage(
 
     const totalRentEur = parseEuros(totalRentEl?.innerText!) || 0;
 
-    const isSchufaRequired = 'SCHUFA erwünscht' in stats;
+    const maleGenderEls = listingPage.querySelectorAll(`img[alt="männlich"]`)
+    const femaleGenderEls = listingPage.querySelectorAll(`img[alt="weiblich"]`)
 
     const costs = {
         totalRentEur,
@@ -100,20 +110,7 @@ export default function parseListingPage(
 
     const sentences = entireText.split(/(\n|\.|\;|\,)/g);
 
-    // true if a sentence contains the word 'anmeldung', but not the words 'no' or 'not'
-    const isAnmeldable = sentences.some((sentence) => {
-        const words = sentence.split(' ');
-
-        const containsAnmeldung = words.some((i) => i.match(/anmeldung/i));
-
-        const containsNo = words.some((i) => i.match(/(no|not)/i));
-
-        return containsAnmeldung && !containsNo;
-    });
-
     const languages = getLanguageFromTexts(textParagraphs)!;
-
-    const codeWord = parseCodeword(entireText);
 
     const addressEl = listingPage.querySelector("[href='#mapContainer']");
 
@@ -165,40 +162,37 @@ export default function parseListingPage(
     const onlineSinceText = normalizeWhitespace(onlineSinceEl?.innerText ?? null);
 
     const publishedDate = (() => {
-        if (/ seconds/.test(onlineSinceText!)) {
+        if (/ sekunden/.test(onlineSinceText!)) {
             return dayjs()
-                .subtract(parseInt(onlineSinceText!.replace(/ seconds/, '')), 'seconds')
+                .subtract(parseInt(onlineSinceText!.replace(/ sekunden/, '')), 'seconds')
                 .toDate();
         }
-        if (/ minutes/.test(onlineSinceText!)) {
+        if (/ minuten/.test(onlineSinceText!)) {
             return dayjs()
-                .subtract(parseInt(onlineSinceText!.replace(/ minutes/, '')), 'minutes')
+                .subtract(parseInt(onlineSinceText!.replace(/ minuten/, '')), 'minutes')
                 .toDate();
         }
-        if (/ hours/.test(onlineSinceText!)) {
+        if (/ stunden/.test(onlineSinceText!)) {
             return dayjs()
-                .subtract(parseInt(onlineSinceText!.replace(/ hours/, '')), 'hours')
+                .subtract(parseInt(onlineSinceText!.replace(/ stunden/, '')), 'hours')
                 .toDate();
         }
-        if (/ days/.test(onlineSinceText!)) {
+        if (/ tage/.test(onlineSinceText!)) {
             return dayjs()
-                .subtract(parseInt(onlineSinceText!.replace(/ days/, '')), 'days')
+                .subtract(parseInt(onlineSinceText!.replace(/ tage/, '')), 'days')
                 .toDate();
         }
         return null;
     })();
 
     return {
-        isSchufaRequired,
-        isAnmeldable,
         costs,
         textParagraphs,
-        location,
+        // location,
         languages,
         publisher,
         entireText,
-        codeWord,
-        features,
+        // features,
         publishedDate,
     };
 }

@@ -38,6 +38,7 @@ export interface RequestPageData {
   // sprachen
 
 }
+export type RequestListing = RequestPreviewData & RequestPageData
 
 
 export interface ListingPreviewData {

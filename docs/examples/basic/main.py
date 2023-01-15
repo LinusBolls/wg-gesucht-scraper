@@ -47,7 +47,7 @@ def get_casual_german_flat_application(listing):
     codeword = listing["codeWord"]
 
     return f"""
-Moin {listing["publisher"]["name"]["rmmended"]},
+Moin {listing["publisher"]["name"]["recommended"]},
 
 {f"Codewort: {codeword} ;)" if codeword is not None else ""}
 Ein Freund und ich suchen nach einer langfristigen Unterkunft, da unsere vorübergehenden Mietverträge demnächst auslaufen.
@@ -147,24 +147,24 @@ def get_application(listing):
     is_casual = listing["publisher"]["name"]["last"] is None
 
     if "german" in listing["languages"]:
-        if listing["type"] in ["FLAT", "SINGLE_ROOM_FLAT"]:
+        if listing["propertyType"] in ["FLAT", "SINGLE_ROOM_FLAT"]:
 
             if is_casual:
                 return get_casual_german_flat_application(listing)
             else:
                 return get_formal_german_flat_application(listing)
 
-        elif listing["type"] == "WG":
+        elif listing["propertyType"] == "WG":
 
             return get_german_wg_application(listing)
 
     elif "english" in listing["languages"]:
 
-        if listing["type"] in ["FLAT", "SINGLE_ROOM_FLAT"]:
+        if listing["propertyType"] in ["FLAT", "SINGLE_ROOM_FLAT"]:
 
             return get_english_flat_application(listing)
 
-        elif listing["type"] == "WG":
+        elif listing["propertyType"] == "WG":
 
             return get_english_wg_application(listing)
 
@@ -178,7 +178,7 @@ while True:
     for listing in listings:
 
         # listing["location"]["city"] is "Berlin"
-        if not listing["userHasApplied"] and listing["endDate"] is None and listing["type"] in ["FLAT", "SINGLE_ROOM_FLAT", "WG"]:
+        if not listing["userHasApplied"] and listing["endDate"] is None and listing["propertyType"] in ["FLAT", "SINGLE_ROOM_FLAT", "WG"]:
 
             application = get_application(listing)
 
