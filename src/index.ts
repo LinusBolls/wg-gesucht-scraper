@@ -345,14 +345,16 @@ app.post('/v1/applications', handleSession(), async (req, res) => {
     );
 
   if (postApplicationErr != null) {
+
+    const errorMessage = (postApplicationErr as AxiosError<{ type: string, title: string, status: number, detail: string }>).response?.data?.detail
+
     console.error(
       'error occured trying to post application:',
-      Object.keys(postApplicationErr)
+      errorMessage ?? postApplicationErr
     );
+    const userHasAlreadyApplied = errorMessage?.startsWith("Conversation already exists")
 
-    const sache = (postApplicationErr as AxiosError<{ type: string, title: string, status: number, detail: string }>).response?.data?.detail
-
-    console.info("error.response.data.detail:", sache)
+    if (userHasAlreadyApplied) registerAction((req as any).meta.session.email, "APPLIED", listingId)
 
     res.status(400).json({
       ok: 0,
