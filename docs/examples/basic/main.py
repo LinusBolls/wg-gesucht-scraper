@@ -3,12 +3,12 @@ from time import sleep
 import requests
 from playsound import playsound
 
-puppet_accounts = [
-    {
-        "email": "ngkf44@gmail.com",
-        "password": "8eRuxBnVSUW85aP",
-    },
-]
+# puppet_accounts = [
+#     {
+#         "email": "ngkf44@gmail.com",
+#         "password": "8eRuxBnVSUW85aP",
+#     },
+# ]
 
 # email addresses not ending in @code.berlin or not
 # both registered and confirmed at https://wg-gesucht.de will get rejected

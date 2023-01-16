@@ -2,7 +2,7 @@ import express, { RequestHandler } from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import { z } from 'zod';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import dayjs from 'dayjs';
 import { parse as parseHtml } from 'node-html-parser';
 import { config as loadEnv } from 'dotenv';
@@ -347,8 +347,12 @@ app.post('/v1/applications', handleSession(), async (req, res) => {
   if (postApplicationErr != null) {
     console.error(
       'error occured trying to post application:',
-      postApplicationErr
+      Object.keys(postApplicationErr)
     );
+
+    const sache = (postApplicationErr as AxiosError<{ type: string, title: string, status: number, detail: string }>).response?.data?.detail
+
+    console.info("error.response.data.detail:", sache)
 
     res.status(400).json({
       ok: 0,
@@ -406,7 +410,7 @@ async function fetchOffers() {
 
       const isDings = getListingsErr.message?.includes('ECONNRESET')
 
-      throw new Error('error fetching offer listings:', getListingsErr);
+      throw new Error('error fetching offer listings:' + getListingsErr);
     }
 
     const { listings: listingOverviews, partneredListings } =
