@@ -34,6 +34,11 @@ export const getTorProxiedClient = (port: number) => {
       return Promise.resolve(res);
     },
     (err) => {
+
+      const isSacheError = err.message?.includes('ECONNRESET')
+
+      console.error("is sache error:", isSacheError)
+      console.error("sache passiert:", err)
       // console.error("an error occured in torProxiedClient:", err)
 
       return Promise.reject(err);

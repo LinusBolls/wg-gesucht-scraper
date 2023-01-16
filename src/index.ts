@@ -402,7 +402,12 @@ async function fetchOffers() {
 
     const [getListingsErr, listingsPageHtml] = await wggClient.getListings(url);
 
-    if (getListingsErr != null) throw new Error('error fetching offer listings:', getListingsErr);
+    if (getListingsErr != null) {
+
+      const isDings = getListingsErr.message?.includes('ECONNRESET')
+
+      throw new Error('error fetching offer listings:', getListingsErr);
+    }
 
     const { listings: listingOverviews, partneredListings } =
       parseListingsPage(listingsPageHtml);
